@@ -38,6 +38,11 @@ only do required imports in respective module when creating parser
 (no expensive global imports)
 """
 
+def seg_ape() -> None:
+    from evo import main_seg_ape
+    parser = main_seg_ape.parser()
+    argcomplete.autocomplete(parser)
+    launch(main_seg_ape, parser)
 
 def ape() -> None:
     from evo import main_ape

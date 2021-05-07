@@ -55,7 +55,7 @@ class StatisticsType(Enum):
     min = "min"
     max = "max"
     sse = "sse"
-
+    segment_mean_std = "segment_mean_std"
 
 class PoseRelation(Enum):
     full_transformation = "full transformation"
@@ -105,6 +105,7 @@ class PE(Metric):
     def __init__(self):
         self.unit = Unit.none
         self.error = np.array([])
+        self.seg_error: typing.List[np.ndarray] = []
 
     def __str__(self) -> str:
         return "PE metric base class"
@@ -113,7 +114,10 @@ class PE(Metric):
     def process_data(self, data):
         return
 
-    def get_statistic(self, statistics_type: StatisticsType) -> float:
+    def get_statistic(self, statistics_type: StatisticsType):
+        """
+        return type could be float or tuples
+        """
         if statistics_type == StatisticsType.rmse:
             squared_errors = np.power(self.error, 2)
             return math.sqrt(np.mean(squared_errors))
@@ -130,6 +134,9 @@ class PE(Metric):
             return np.min(self.error)
         elif statistics_type == StatisticsType.std:
             return float(np.std(self.error))
+        elif statistics_type == StatisticsType.segment_mean_std:
+            max_segment_errors = np.array([np.max(x) for x in self.seg_error])
+            return (np.mean(max_segment_errors), np.std(max_segment_errors))
         else:
             raise MetricsException("unsupported statistics_type")
 
@@ -373,6 +380,118 @@ class APE(PE):
             ])
         else:
             raise MetricsException("unsupported pose_relation")
+
+class SEG_APE(PE):
+    """
+    SEG_APE: divide the trajectory into segment, and then align origin 
+            then compute APE
+            
+    """
+
+    def __init__(self, pose_relation: PoseRelation = PoseRelation.translation_part, segment_length = 500):
+        self.segment_length = segment_length
+        self.pose_relation = pose_relation
+        self.error = []
+        self.segment_length: typing.List[np.ndarray] = []
+        self.E: typing.List[List[np.ndarray]] = []
+        if pose_relation == PoseRelation.translation_part:
+            self.unit = Unit.meters
+        elif pose_relation == PoseRelation.rotation_angle_deg:
+            self.unit = Unit.degrees
+        elif pose_relation == PoseRelation.rotation_angle_rad:
+            self.unit = Unit.radians
+        else:
+            self.unit = Unit.none 
+
+    def __str__(self) -> str:
+        title = "segment APE w.r.t. "
+        title += (str(self.pose_relation.value) + " " + 
+        ("(" + self.unit.value + ")" if self.unit else "") + " "
+        + "segment " + str(self.segment_length) + "m")
+        return title
+
+    def last_pose_from_segment_length(self, gt_poses: trajectory.PosePath3D, first_pose):
+        dist = gt_poses.distances
+        #todo need check whether this distance is what I expected 
+        print(dist)
+
+        for i in range(1,gt_poses.num_poses):  #todo check whether to use shape[0] or [1]
+            if dist[i] > dist[first_pose] + self.segment_length:
+                return i
+        
+        return -1
+
+    def process_data(self, data: PathPair) -> None:
+        """
+        Calculate the APE of segments from a batch of SE(3) poses from trajectories
+        :param data: tuple (traj_ref, traj_est) with:
+        traj_ref: reference evo.trajectory.PosePath or derived
+        traj_est: estimated evo.trajectory.PosePath or derived
+
+        """
+        if len(data) != 2:
+            raise MetricsException(
+                "please provide data tuple as: (traj_ref, traj_est)")
+        traj_ref, traj_est = data
+        if traj_ref.num_poses != traj_est.num_poses:
+            raise MetricsException(
+                "trajectories must have same number of poses")
+
+        step_size = 10
+
+        for first_pose in range(0,traj_ref.num_poses, step_size):
+
+            last_pose = last_pose(traj_ref, first_pose)
+
+            if (last_pose == -1):
+                break
+
+            traj_ref_segment = trajectory.PosePath3D(poses_se3=traj_ref.poses_se3[first_pose, last_pose])
+            traj_est_segment = trajectory.PosePath3D(poses_se3=traj_est.poses_se3[first_pose, last_pose])
+            alignment_transformation = traj_est_segment.align_origin(traj_ref_segment)
+
+            if self.pose_relation == PoseRelation.translation_part:
+                segment_E = traj_est_segment.positions_xyz - traj_ref_segment.positions_xyz
+            else:
+                segment_E = [
+                    self.ape_base(x_t, x_t_star) for x_t, x_t_star in zip(
+                        traj_est_segment.poses_se3, traj_ref_segment.poses_se3
+                    )
+                ]
+            logger.debug("Compared {} absolute pose pairs.".format(len(self.E)))
+            logger.debug("Calculating APE for {} pose relation...".format(
+            (self.pose_relation.value)))  
+
+            if self.pose_relation == PoseRelation.translation_part:
+                segment_error = np.array([np.linalg.norm(E_i) for E_i in segment_E])
+            elif self.pose_relation == PoseRelation.rotation_part:
+                segment_error = np.array([
+                    np.linalg.norm(lie.so3_from_se3(E_i) - np.eye(3))
+                    for E_i in segment_E
+                ])
+            elif self.pose_relation == PoseRelation.full_transformation:
+                segment_error = np.array(
+                    [np.linalg.norm(E_i - np.eye(4)) for E_i in segment_E]
+                )
+            elif self.pose_relation == PoseRelation.rotation_angle_rad:
+                segment_error = np.array(
+                [abs(lie.so3_log(E_i[:3, :3])) for E_i in segment_E])
+            elif self.pose_relation == PoseRelation.rotation_angle_deg:
+                segment_error = np.array([
+                abs(lie.so3_log(E_i[:3, :3])) * 180 / np.pi for E_i in segment_E
+                ])
+            else:
+                raise MetricsException("unsupported pose_relation")
+
+            self.E.append(segment_E)
+            self.seg_error.append(segment_error)       
+
+
+
+
+
+
+
 
 
 def id_pairs_from_delta(poses: typing.Sequence[np.ndarray], delta: float,
