@@ -126,6 +126,8 @@ def plot_result(args: argparse.Namespace, result: Result, traj_ref: PosePath3D,
         }, name=result.info["label"], title=result.info["title"],
         xlabel="$t$ (s)" if seconds_from_start is not None else "index")
 
+    logger.debug("Plotting results... ")
+
     # Plot the values color-mapped onto the trajectory.
     fig2 = plt.figure(figsize=SETTINGS.plot_figsize)
     ax = plot.prepare_axis(fig2, plot_mode)

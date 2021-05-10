@@ -186,14 +186,12 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         logger.debug(SEP)
         alignment_transformation = traj_est.align_origin(traj_ref)
 
-    print(alignment_transformation)
     # Calculate APE.
     logger.debug(SEP)
     data = (traj_ref, traj_est)
     ape_metric = metrics.APE(pose_relation)
     ape_metric.process_data(data)
 
-    print("exit process_data")
 
     title = str(ape_metric)
     if align and not correct_scale:
@@ -208,12 +206,8 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         title += "\n(not aligned)"
     if (align or correct_scale) and n_to_align != -1:
         title += " (aligned poses: {})".format(n_to_align)
-    print("before get_result")
     ape_result = ape_metric.get_result(ref_name, est_name)
-    print("after get_result")
     ape_result.info["title"] = title
-    print("finished processing")
-    print("ape_result:", ape_result.stats())
     logger.debug(SEP)
     logger.info(ape_result.pretty_str())
 
@@ -233,6 +227,7 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
 
 
 def run(args: argparse.Namespace) -> None:
+    print('using this main_ape')
     log.configure_logging(args.verbose, args.silent, args.debug,
                           local_logfile=args.logfile)
     if args.debug:
@@ -276,8 +271,8 @@ def run(args: argparse.Namespace) -> None:
         est_name=est_name,
     )
 
-    if args.plot or args.save_plot or args.serialize_plot:
-        common.plot_result(args, result, traj_ref,
+    # if args.plot or args.save_plot or args.serialize_plot:
+    common.plot_result(args, result, traj_ref,
                            result.trajectories[est_name],
                            traj_ref_full=traj_ref_full)
 

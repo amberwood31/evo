@@ -313,16 +313,22 @@ def traj(ax: plt.Axes, plot_mode: PlotMode, traj: trajectory.PosePath3D,
     :param label: label (for legend)
     :param alpha: alpha value for transparency
     """
+    logger.debug("Plotting from traj ")
+
     x_idx, y_idx, z_idx = plot_mode_to_idx(plot_mode)
     x = traj.positions_xyz[:, x_idx]
     y = traj.positions_xyz[:, y_idx]
     if plot_mode == PlotMode.xyz:
         z = traj.positions_xyz[:, z_idx]
         ax.plot(x, y, z, style, color=color, label=label, alpha=alpha)
+        ax.plot(x[0], y[0], z[0], '*', color='r', markersize=12)
+        print('marking', len(x), 'points')
         if SETTINGS.plot_xyz_realistic:
             set_aspect_equal_3d(ax)
     else:
         ax.plot(x, y, style, color=color, label=label, alpha=alpha)
+        ax.plot(x[1000], y[1000], z[1000], '*', color='r', markersize=12)
+
     if label:
         ax.legend(frameon=True)
 
@@ -394,6 +400,7 @@ def traj_colormap(ax: plt.Axes, traj: trajectory.PosePath3D,
         "{0:0.3f}".format(max_map - (max_map - min_map) / 2),
         "{0:0.3f}".format(max_map)
     ])
+
     if title:
         ax.legend(frameon=True)
         ax.set_title(title)

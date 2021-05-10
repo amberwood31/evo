@@ -235,22 +235,45 @@ class PosePath3D(object):
         logger.debug(
             "Origin alignment transformation:\n{}".format(to_ref_origin))
         self.transform(to_ref_origin)
-        #return to_ref_origin
 
+        print('origin 0 pose: ', self.poses_se3[0])
+        print('origin 1 pose: ', self.poses_se3[1])
+        print('results 0 pose: ', traj_ref.poses_se3[0])
+        print('results 1 pose: ', traj_ref.poses_se3[1])
+        traj_origin_edge = tr.translation_from_matrix(np.dot(self.poses_se3[2], lie.se3_inverse(self.poses_se3[1])))
+        traj_ref_edge = tr.translation_from_matrix(np.dot(traj_ref.poses_se3[2], lie.se3_inverse(traj_ref.poses_se3[1])))
+        print('edge_origin:', traj_origin_edge)
+        print('edge_ref:', traj_ref_edge)
 
+         
+        # traj_origin_edge = np.dot(self.poses_se3[1], lie.se3_inverse(self.poses_se3[0]))
 
-        traj_origin_edge = np.dot(self.poses_se3[1], lie.se3_inverse(self.poses_se3[0]))
-        traj_origin_orientation = lie.so3_from_se3(traj_origin_edge)
+        # print('origin 0 pose: ', self.poses_se3[0])
+        # print('origin 1 pose: ', self.poses_se3[1])
+        # traj_ref_edge = np.dot(traj_ref.poses_se3[1], lie.se3_inverse(traj_ref.poses_se3[0]))
 
-        traj_ref_edge = np.dot(traj_ref.poses_se3[1], lie.se3_inverse(traj_ref.poses_se3[0]))
-        traj_ref_orientation = lie.so3_from_se3(traj_ref_edge)
+        # print('results 0 pose: ', traj_ref.poses_se3[0])
+        # print('results 1 pose: ', traj_ref.poses_se3[1])
 
-        to_ref_origin_rotation = np.eye(4)
-        to_ref_origin_rotation[:3, :3] = lie.relative_so3(traj_origin_orientation, traj_ref_orientation)
+        # to_ref_origin1 = np.dot(traj_origin_edge, lie.se3_inverse(traj_ref_edge))
+        # print('edge transform: ', to_ref_origin1)
+        # self.transform(to_ref_origin1)
 
-        logger.debug(
-            "Origin rotation_again alignment transformation:\n{}".format(to_ref_origin_rotation))
-        self.transform(to_ref_origin_rotation)
+        # to_ref_origin2 = np.eye(4)
+        # to_ref_origin2[:3,3] = tr.translation_from_matrix(traj_ref.poses_se3[0]) - tr.translation_from_matrix(self.poses_se3[0])
+        # print('translation:', to_ref_origin2[:3,3])
+        # self.transform(to_ref_origin2)
+
+        # print('after alignment: ')
+        # print('origin 0 pose: ', self.poses_se3[0])
+        # print('results 0 pose: ', traj_ref.poses_se3[0])
+        # print('origin 1 pose: ', self.poses_se3[10])
+        # print('results 1 pose: ', traj_ref.poses_se3[10])       
+
+    
+        # logger.debug(
+        #     "Origin rotation_again alignment transformation:\n{}".format(to_ref_origin_rotation))
+        # self.transform(to_ref_origin_rotation)
         return to_ref_origin
 
 

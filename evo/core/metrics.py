@@ -175,9 +175,7 @@ class PE(Metric):
             "label": "{} {}".format(metric_name,
                                     "({})".format(self.unit.value))
         })
-        print("before get_all_statistics")
         result.add_stats(self.get_all_statistics())
-        print("after get_all_statistics")
         if hasattr(self, "error"):
             result.add_np_array("error_array", self.error)
         return result
