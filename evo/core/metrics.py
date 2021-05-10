@@ -55,7 +55,7 @@ class StatisticsType(Enum):
     min = "min"
     max = "max"
     sse = "sse"
-    segment_mean_std = "segment_mean_std"
+    #segment_mean_std = "segment_mean_std"
 
 class PoseRelation(Enum):
     full_transformation = "full transformation"
@@ -114,7 +114,7 @@ class PE(Metric):
     def process_data(self, data):
         return
 
-    def get_statistic(self, statistics_type: StatisticsType):
+    def get_statistic(self, statistics_type: StatisticsType) -> float:
         """
         return type could be float or tuples
         """
@@ -145,12 +145,17 @@ class PE(Metric):
         :return: a dictionary {StatisticsType.value : float}
         """
         statistics = {}
+        print("before get_statistic")
+
         for s in StatisticsType:
+            print(s.value)
             try:
                 statistics[s.value] = self.get_statistic(s)
+                print(statistics[s.value])
             except MetricsException as e:
                 if "unsupported statistics_type" not in str(e):
                     raise
+        print("finished get_statistic")
         return statistics
 
     def get_result(self, ref_name: str = "reference",
@@ -170,7 +175,9 @@ class PE(Metric):
             "label": "{} {}".format(metric_name,
                                     "({})".format(self.unit.value))
         })
+        print("before get_all_statistics")
         result.add_stats(self.get_all_statistics())
+        print("after get_all_statistics")
         if hasattr(self, "error"):
             result.add_np_array("error_array", self.error)
         return result

@@ -235,7 +235,26 @@ class PosePath3D(object):
         logger.debug(
             "Origin alignment transformation:\n{}".format(to_ref_origin))
         self.transform(to_ref_origin)
+        #return to_ref_origin
+
+
+
+        traj_origin_edge = np.dot(self.poses_se3[1], lie.se3_inverse(self.poses_se3[0]))
+        traj_origin_orientation = lie.so3_from_se3(traj_origin_edge)
+
+        traj_ref_edge = np.dot(traj_ref.poses_se3[1], lie.se3_inverse(traj_ref.poses_se3[0]))
+        traj_ref_orientation = lie.so3_from_se3(traj_ref_edge)
+
+        to_ref_origin_rotation = np.eye(4)
+        to_ref_origin_rotation[:3, :3] = lie.relative_so3(traj_origin_orientation, traj_ref_orientation)
+
+        logger.debug(
+            "Origin rotation_again alignment transformation:\n{}".format(to_ref_origin_rotation))
+        self.transform(to_ref_origin_rotation)
         return to_ref_origin
+
+
+
 
     def reduce_to_ids(
             self, ids: typing.Union[typing.Sequence[int], np.ndarray]) -> None:

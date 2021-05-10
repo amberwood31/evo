@@ -1,11 +1,11 @@
-from evo import main_seg_ape
+from evo import main_seg_ape, main_ape
 import argcomplete
 import argparse
 
 import logging
 import sys
 
-parser = main_seg_ape.parser()
+parser = main_ape.parser()
 argcomplete.autocomplete(parser)
 
 logger = logging.getLogger(__name__)
@@ -33,13 +33,10 @@ if hasattr(args, "config"):
     args = merge_config(args)
     
 try:
-    main_seg_ape.run(args)
+    main_ape.run(args)
 except KeyboardInterrupt:
     sys.exit(1)
 except SystemExit as e:
     sys.exit(e.code)
-except KNOWN_EXCEPTIONS as e:
-    logger.error(str(e))
-    sys.exit(1)
 except Exception:
     sys.exit(1)

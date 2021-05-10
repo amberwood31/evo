@@ -175,7 +175,6 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         correct_scale: bool = False, n_to_align: int = -1,
         align_origin: bool = False, ref_name: str = "reference",
         est_name: str = "estimate") -> Result:
-
     # Align the trajectories.
     only_scale = correct_scale and not align
     alignment_transformation = None
@@ -187,11 +186,14 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         logger.debug(SEP)
         alignment_transformation = traj_est.align_origin(traj_ref)
 
+    print(alignment_transformation)
     # Calculate APE.
     logger.debug(SEP)
     data = (traj_ref, traj_est)
     ape_metric = metrics.APE(pose_relation)
     ape_metric.process_data(data)
+
+    print("exit process_data")
 
     title = str(ape_metric)
     if align and not correct_scale:
@@ -206,10 +208,12 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         title += "\n(not aligned)"
     if (align or correct_scale) and n_to_align != -1:
         title += " (aligned poses: {})".format(n_to_align)
-
+    print("before get_result")
     ape_result = ape_metric.get_result(ref_name, est_name)
+    print("after get_result")
     ape_result.info["title"] = title
-
+    print("finished processing")
+    print("ape_result:", ape_result.stats())
     logger.debug(SEP)
     logger.info(ape_result.pretty_str())
 
