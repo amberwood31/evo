@@ -224,7 +224,7 @@ class PosePath3D(object):
 
         return r_a, t_a, s
 
-    def align_origin_odom(self, traj_ref: 'PosePath3D') -> np.ndarray:
+    def align_odom(self, traj_ref: 'PosePath3D') -> np.ndarray:
         """
         align the origin to the origin of a reference trajectory
         :param traj_ref: reference trajectory

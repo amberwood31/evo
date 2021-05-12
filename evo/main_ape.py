@@ -191,7 +191,7 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         alignment_transformation = traj_est.align_origin(traj_ref)
     elif align_odom:
         logger.debug(SEP)
-        alignment_transformation = traj_est.align_origin_odom(traj_ref)
+        alignment_transformation = traj_est.align_odom(traj_ref)
 
     # Calculate APE.
     logger.debug(SEP)
