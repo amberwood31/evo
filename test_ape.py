@@ -32,11 +32,11 @@ args = parser.parse_args()
 if hasattr(args, "config"):
     args = merge_config(args)
     
-try:
-    main_ape.run(args)
-except KeyboardInterrupt:
-    sys.exit(1)
-except SystemExit as e:
-    sys.exit(e.code)
-except Exception:
-    sys.exit(1)
+# try:
+main_ape.run(args)
+# except KeyboardInterrupt:
+#     sys.exit(1)
+# except SystemExit as e:
+#     sys.exit(e.code)
+# except Exception:
+#     sys.exit(1)

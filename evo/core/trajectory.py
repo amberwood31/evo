@@ -168,6 +168,9 @@ class PosePath3D(object):
         self._positions_xyz, self._orientations_quat_wxyz \
             = se3_poses_to_xyz_quat_wxyz(self.poses_se3)
 
+    def transform_translation_only(self, t: np.ndarray) -> None:
+        self._positions_xyz = np.array([np.dot(t, pose[:,3])[:3] for pose in self._poses_se3])
+
     def scale(self, s: float) -> None:
         """
         apply a scaling to the whole path
@@ -221,6 +224,63 @@ class PosePath3D(object):
 
         return r_a, t_a, s
 
+    def align_origin_odom(self, traj_ref: 'PosePath3D') -> np.ndarray:
+        """
+        align the origin to the origin of a reference trajectory
+        :param traj_ref: reference trajectory
+        :return: the used transformation
+        """
+        if self.num_poses == 0 or traj_ref.num_poses == 0:
+            raise TrajectoryException("can't align an empty trajectory...")
+        traj_origin = self.poses_se3[0]
+        traj_ref_origin = traj_ref.poses_se3[0]
+        to_ref_origin = np.dot(traj_ref_origin, lie.se3_inverse(traj_origin))
+        logger.debug(
+            "Origin alignment transformation:\n{}".format(to_ref_origin))
+        self.transform(to_ref_origin)
+
+        print('origin 0 position: ', tr.translation_from_matrix(self.poses_se3[0]))
+        print('origin 1 position: ', tr.translation_from_matrix(self.poses_se3[1]))
+        print('results 0 position: ', tr.translation_from_matrix(traj_ref.poses_se3[0]))
+        print('results 1 position: ', tr.translation_from_matrix(traj_ref.poses_se3[1]))
+        traj_origin_edge = tr.translation_from_matrix(self.poses_se3[1]) - tr.translation_from_matrix(self.poses_se3[0])
+        traj_ref_edge = tr.translation_from_matrix(traj_ref.poses_se3[1]) - tr.translation_from_matrix(traj_ref.poses_se3[0])
+        print('edge_origin:', traj_origin_edge)
+        print('edge_ref:', traj_ref_edge)
+
+        angle = np.arccos(np.dot(traj_origin_edge, traj_ref_edge)/(np.linalg.norm(traj_origin_edge)*np.linalg.norm(traj_ref_edge)))
+        print('angle:', angle)
+
+        axis = np.cross(traj_origin_edge, traj_ref_edge)
+        print('axis:', axis)
+
+        rotation_mat = tr.rotation_matrix(angle, axis, tr.translation_from_matrix(traj_ref.poses_se3[0]))
+        
+        print('rotation: ', rotation_mat)
+
+        self.transform_translation_only(rotation_mat)
+
+        print('after alignment pose')
+        print('origin 0 pose: ', tr.translation_from_matrix(self.poses_se3[0]))
+        print('origin 1 pose: ', tr.translation_from_matrix(self.poses_se3[1]))
+        print('results 0 pose: ', tr.translation_from_matrix(traj_ref.poses_se3[0]))
+        print('results 1 pose: ', tr.translation_from_matrix(traj_ref.poses_se3[1]))
+        print('these poses should be consistant to position prints above')
+
+        print('after alignment position')
+        print('origin 0 position: ', self._positions_xyz[0])
+        print('origin 1 position: ', self._positions_xyz[1])
+        print('results 0 position: ', traj_ref.positions_xyz[0])
+        print('results 1 position: ', traj_ref.positions_xyz[1])
+        print('origin 1 positions should be different with the previous prints while origin 0 similar')
+
+
+
+
+        return to_ref_origin
+
+
+
     def align_origin(self, traj_ref: 'PosePath3D') -> np.ndarray:
         """
         align the origin to the origin of a reference trajectory
@@ -236,14 +296,7 @@ class PosePath3D(object):
             "Origin alignment transformation:\n{}".format(to_ref_origin))
         self.transform(to_ref_origin)
 
-        print('origin 0 pose: ', self.poses_se3[0])
-        print('origin 1 pose: ', self.poses_se3[1])
-        print('results 0 pose: ', traj_ref.poses_se3[0])
-        print('results 1 pose: ', traj_ref.poses_se3[1])
-        traj_origin_edge = tr.translation_from_matrix(np.dot(self.poses_se3[2], lie.se3_inverse(self.poses_se3[1])))
-        traj_ref_edge = tr.translation_from_matrix(np.dot(traj_ref.poses_se3[2], lie.se3_inverse(traj_ref.poses_se3[1])))
-        print('edge_origin:', traj_origin_edge)
-        print('edge_ref:', traj_ref_edge)
+
 
          
         # traj_origin_edge = np.dot(self.poses_se3[1], lie.se3_inverse(self.poses_se3[0]))

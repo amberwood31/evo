@@ -64,6 +64,9 @@ def parser() -> argparse.ArgumentParser:
         "--align_origin",
         help="align the trajectory origin to the origin of the reference "
         "trajectory", action="store_true")
+    algo_opts.add_argument(
+        "--align_odom",
+        help="align the trajectory origin position and the first odom translation orientation", action="store_true")
 
     output_opts.add_argument(
         "-p",
@@ -173,7 +176,8 @@ def parser() -> argparse.ArgumentParser:
 def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         pose_relation: metrics.PoseRelation, align: bool = False,
         correct_scale: bool = False, n_to_align: int = -1,
-        align_origin: bool = False, ref_name: str = "reference",
+        align_origin: bool = False, align_odom: bool = False,
+        ref_name: str = "reference",
         est_name: str = "estimate") -> Result:
     # Align the trajectories.
     only_scale = correct_scale and not align
@@ -185,6 +189,9 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
     elif align_origin:
         logger.debug(SEP)
         alignment_transformation = traj_est.align_origin(traj_ref)
+    elif align_odom:
+        logger.debug(SEP)
+        alignment_transformation = traj_est.align_origin_odom(traj_ref)
 
     # Calculate APE.
     logger.debug(SEP)
@@ -259,6 +266,7 @@ def run(args: argparse.Namespace) -> None:
 
     pose_relation = common.get_pose_relation(args)
 
+    print('align_odom: ', args.align_odom)
     result = ape(
         traj_ref=traj_ref,
         traj_est=traj_est,
@@ -267,12 +275,13 @@ def run(args: argparse.Namespace) -> None:
         correct_scale=args.correct_scale,
         n_to_align=args.n_to_align,
         align_origin=args.align_origin,
+        align_odom=args.align_odom,
         ref_name=ref_name,
         est_name=est_name,
     )
 
-    # if args.plot or args.save_plot or args.serialize_plot:
-    common.plot_result(args, result, traj_ref,
+    if args.plot or args.save_plot or args.serialize_plot:
+        common.plot_result(args, result, traj_ref,
                            result.trajectories[est_name],
                            traj_ref_full=traj_ref_full)
 

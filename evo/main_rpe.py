@@ -253,6 +253,7 @@ def rpe(traj_ref: PosePath3D, traj_est: PosePath3D,
 
 
 def run(args: argparse.Namespace) -> None:
+    print('using this main_ape')
 
     log.configure_logging(args.verbose, args.silent, args.debug,
                           local_logfile=args.logfile)
