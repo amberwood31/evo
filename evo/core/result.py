@@ -64,12 +64,16 @@ class Result(object):
         return not self == other
 
     def pretty_str(self, title=True, stats=True, info=False) -> str:
-        p_str = ""
+        p_str = "printing results \n"
         if title and "title" in self.info:
             p_str += "{}\n\n".format(self.info["title"])
         if stats:
             for name, val in sorted(self.stats.items()):
-                p_str += "{:>10}\t{:.6f}\n".format(name, val)
+                print("name is", name)
+                if name == "segment_mean_std":
+                    print(val[0], val[1])
+                else:
+                    p_str += "{:>10}\t{:.6f}\n".format(name, val)
         if info:
             for name, val in sorted(self.info.items()):
                 p_str += "{:>10}\t{}\n".format(name, val)

@@ -321,31 +321,31 @@ def traj(ax: plt.Axes, plot_mode: PlotMode, traj: trajectory.PosePath3D,
     if plot_mode == PlotMode.xyz:
         z = traj.positions_xyz[:, z_idx]
         ax.plot(x, y, z, style, color=color, label=label, alpha=alpha)
-        ax.plot(x[0], y[0], z[0], '*', color='r', markersize=12)
-        ax.plot(x[100], y[100], z[100], '*', color='y', markersize=12)
-        ax.plot(x[130], y[130], z[130], '*', color='y', markersize=12)
-        ax.plot(x[160], y[160], z[160], '*', color='y', markersize=12)
+        ax.plot(x[700], y[700], z[700], '*', color='r', markersize=12)
+        # ax.plot(x[100], y[100], z[100], '*', color='y', markersize=12)
+        # ax.plot(x[130], y[130], z[130], '*', color='y', markersize=12)
+        # ax.plot(x[160], y[160], z[160], '*', color='y', markersize=12)
 
-        ax.plot(x[200], y[200], z[200], '*', color='y', markersize=12)
-        ax.plot(x[230], y[230], z[230], '*', color='y', markersize=12)
-        ax.plot(x[260], y[260], z[260], '*', color='y', markersize=12)
+        # ax.plot(x[200], y[200], z[200], '*', color='y', markersize=12)
+        # ax.plot(x[230], y[230], z[230], '*', color='y', markersize=12)
+        # ax.plot(x[260], y[260], z[260], '*', color='y', markersize=12)
 
-        ax.plot(x[300], y[300], z[300], '*', color='g', markersize=12)
-        ax.plot(x[330], y[330], z[330], '*', color='g', markersize=12)
-        ax.plot(x[360], y[360], z[360], '*', color='g', markersize=12)
+        # ax.plot(x[300], y[300], z[300], '*', color='g', markersize=12)
+        # ax.plot(x[330], y[330], z[330], '*', color='g', markersize=12)
+        # ax.plot(x[360], y[360], z[360], '*', color='g', markersize=12)
 
-        ax.plot(x[400], y[400], z[400], '*', color='g', markersize=12)
-        ax.plot(x[430], y[430], z[430], '*', color='g', markersize=12)
-        ax.plot(x[460], y[460], z[460], '*', color='g', markersize=12)
+        # ax.plot(x[400], y[400], z[400], '*', color='g', markersize=12)
+        # ax.plot(x[430], y[430], z[430], '*', color='g', markersize=12)
+        # ax.plot(x[460], y[460], z[460], '*', color='g', markersize=12)
 
-        ax.plot(x[500], y[500], z[500], '*', color='b', markersize=12)
-        ax.plot(x[530], y[530], z[530], '*', color='b', markersize=12)
+        # ax.plot(x[500], y[500], z[500], '*', color='b', markersize=12)
+        # ax.plot(x[530], y[530], z[530], '*', color='b', markersize=12)
 
-        ax.plot(x[560], y[560], z[560], '*', color='b', markersize=12)
+        # ax.plot(x[560], y[560], z[560], '*', color='b', markersize=12)
 
-        ax.plot(x[600], y[600], z[600], '*', color='b', markersize=12)
+        # ax.plot(x[600], y[600], z[600], '*', color='b', markersize=12)
 
-        ax.plot(x[700], y[700], z[700], '*', color='k', markersize=12)
+        ax.plot(x[900], y[900], z[900], '*', color='k', markersize=12)
 
 
         print('marking', len(x), 'points')
@@ -353,7 +353,7 @@ def traj(ax: plt.Axes, plot_mode: PlotMode, traj: trajectory.PosePath3D,
             set_aspect_equal_3d(ax)
     else:
         ax.plot(x, y, style, color=color, label=label, alpha=alpha)
-        ax.plot(x[1000], y[1000], z[1000], '*', color='r', markersize=12)
+        #ax.plot(x[1000], y[1000], z[1000], '*', color='r', markersize=12)
 
     if label:
         ax.legend(frameon=True)

@@ -4,9 +4,10 @@ import argparse
 import logging
 
 import numpy as np
+import math
 
 import evo.common_ape_rpe as common
-from evo.core import lie_algebra, sync, metrics
+from evo.core import lie_algebra, sync, metrics, transformations
 from evo.core.result import Result
 from evo.core.trajectory import PosePath3D, PoseTrajectory3D
 from evo.tools import file_interface, log
@@ -28,7 +29,7 @@ def parser() -> argparse.ArgumentParser:
     algo_opts.add_argument(
         "-r", "--pose_relation", default="trans_part",
         help="pose relation on which the APE is based",
-        choices=["full", "trans_part", "rot_part", "angle_deg", "angle_rad"])
+        choices=["full", "trans_part", "z", "xy", "rot_part", "angle_deg", "angle_rad"])
     algo_opts.add_argument("-a", "--align",
                            help="alignment with Umeyama's method (no scale)",
                            action="store_true")
@@ -42,6 +43,17 @@ def parser() -> argparse.ArgumentParser:
         "--align_origin",
         help="align the trajectory origin to the origin of the reference "
         "trajectory", action="store_true")
+    algo_opts.add_argument(
+        "--align_odom",
+        help="align the trajectory origin position and the first odom translation orientation", action="store_true")
+    algo_opts.add_argument(
+        "--seg",
+        help="the segment length", default=50, type=float)
+    algo_opts.add_argument(
+        "--flip_xy",
+        help="rotate the pose estimates by 90 degree around z axis, to handle different reference frame of different sensors",
+        action="store_true"
+    )
 
     output_opts.add_argument(
         "-p",
@@ -151,24 +163,26 @@ def parser() -> argparse.ArgumentParser:
 def segment_ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         pose_relation: metrics.PoseRelation, align: bool = False,
         correct_scale: bool = False, n_to_align: int = -1,
-        align_origin: bool = False, ref_name: str = "reference",
+        align_origin: bool = False, align_odom: bool = False,
+        segment_length = 50,
+        ref_name: str = "reference",
         est_name: str = "estimate") -> Result:
 
     # Align the trajectories.
     only_scale = correct_scale and not align
     alignment_transformation = None
-    if align or correct_scale:
-        logger.debug(SEP)
-        alignment_transformation = lie_algebra.sim3(
-            *traj_est.align(traj_ref, correct_scale, only_scale, n=n_to_align))
-    elif align_origin:
-        logger.debug(SEP)
-        alignment_transformation = traj_est.align_origin(traj_ref)
+    # if align or correct_scale:
+    #     logger.debug(SEP)
+    #     alignment_transformation = lie_algebra.sim3(
+    #         *traj_est.align(traj_ref, correct_scale, only_scale, n=n_to_align))
+    # elif align_origin:
+    #     logger.debug(SEP)
+    #     alignment_transformation = traj_est.align_origin(traj_ref)
 
     logger.debug(SEP)
     data = (traj_ref, traj_est)
-    seg_ape_metric = metrics.SEG_APE(pose_relation)
-    seg_ape_metric.process_data(data)
+    seg_ape_metric = metrics.SEG_APE(pose_relation, segment_length)
+    seg_ape_metric.process_data(data, align, align_origin, align_odom)
 
     title = str(seg_ape_metric)
     if align and not correct_scale:
@@ -188,6 +202,7 @@ def segment_ape(traj_ref: PosePath3D, traj_est: PosePath3D,
     seg_ape_result.info['title'] = title
     
     logger.debug(SEP)
+    
     logger.info(seg_ape_result.pretty_str())
 
     seg_ape_result.add_trajectory(ref_name, traj_ref)
@@ -220,6 +235,13 @@ def run(args: argparse.Namespace) -> None:
         import copy
         traj_ref_full = copy.deepcopy(traj_ref)
 
+    if args.flip_xy:
+        print("flip xy", args.flip_xy)
+        flip_rotation = transformations.rotation_matrix(math.pi/2, [0,0,1])
+        print('transformation matrix,', flip_rotation)
+        traj_est.transform_rotation_only(flip_rotation)
+
+
     if isinstance(traj_ref, PoseTrajectory3D) and isinstance(
             traj_est, PoseTrajectory3D):
         logger.debug(SEP)
@@ -244,6 +266,8 @@ def run(args: argparse.Namespace) -> None:
         correct_scale=args.correct_scale,
         n_to_align=args.n_to_align,
         align_origin=args.align_origin,
+        align_odom=args.align_odom,
+        segment_length=args.seg,
         ref_name=ref_name,
         est_name=est_name,
     )

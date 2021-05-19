@@ -171,6 +171,16 @@ class PosePath3D(object):
     def transform_translation_only(self, t: np.ndarray) -> None:
         self._positions_xyz = np.array([np.dot(t, pose[:,3])[:3] for pose in self._poses_se3])
 
+    def transform_rotation_only(self, t: np.ndarray) -> None:
+        self._orientations_quat_wxyz \
+                = np.array(
+                    [tr.quaternion_from_matrix(np.dot(t, p))
+                     for p in self.poses_se3])
+        self._poses_se3 \
+                = xyz_quat_wxyz_to_se3_poses(self.positions_xyz,
+                                             self.orientations_quat_wxyz)
+
+
     def scale(self, s: float) -> None:
         """
         apply a scaling to the whole path
@@ -239,17 +249,17 @@ class PosePath3D(object):
             "Origin alignment transformation:\n{}".format(to_ref_origin))
         self.transform(to_ref_origin)
 
-        print('origin 0 position: ', tr.translation_from_matrix(self.poses_se3[0]))
-        print('origin 1 position: ', tr.translation_from_matrix(self.poses_se3[1]))
-        print('results 0 position: ', tr.translation_from_matrix(traj_ref.poses_se3[0]))
-        print('results 1 position: ', tr.translation_from_matrix(traj_ref.poses_se3[1]))
+        # print('origin 0 position: ', tr.translation_from_matrix(self.poses_se3[0]))
+        # print('origin 1 position: ', tr.translation_from_matrix(self.poses_se3[1]))
+        # print('results 0 position: ', tr.translation_from_matrix(traj_ref.poses_se3[0]))
+        # print('results 1 position: ', tr.translation_from_matrix(traj_ref.poses_se3[1]))
         traj_origin_edge = tr.translation_from_matrix(self.poses_se3[1]) - tr.translation_from_matrix(self.poses_se3[0])
         traj_ref_edge = tr.translation_from_matrix(traj_ref.poses_se3[1]) - tr.translation_from_matrix(traj_ref.poses_se3[0])
-        print('edge_origin:', traj_origin_edge)
-        print('edge_ref:', traj_ref_edge)
+        # print('edge_origin:', traj_origin_edge)
+        # print('edge_ref:', traj_ref_edge)
 
         angle = np.arccos(np.dot(traj_origin_edge, traj_ref_edge)/(np.linalg.norm(traj_origin_edge)*np.linalg.norm(traj_ref_edge)))
-        print('angle:', angle)
+        # print('angle:', angle)
 
         axis = np.cross(traj_origin_edge, traj_ref_edge)
         print('axis:', axis)
@@ -257,8 +267,9 @@ class PosePath3D(object):
         rotation_mat = tr.rotation_matrix(angle, axis, tr.translation_from_matrix(traj_ref.poses_se3[0]))
         
         print('rotation: ', rotation_mat)
+        self.transform(rotation_mat)
 
-        self.transform_translation_only(rotation_mat)
+        # self.transform_translation_only(rotation_mat)
 
         print('after alignment pose')
         print('origin 0 pose: ', tr.translation_from_matrix(self.poses_se3[0]))
@@ -296,37 +307,10 @@ class PosePath3D(object):
             "Origin alignment transformation:\n{}".format(to_ref_origin))
         self.transform(to_ref_origin)
 
-
-
-         
-        # traj_origin_edge = np.dot(self.poses_se3[1], lie.se3_inverse(self.poses_se3[0]))
-
-        # print('origin 0 pose: ', self.poses_se3[0])
-        # print('origin 1 pose: ', self.poses_se3[1])
-        # traj_ref_edge = np.dot(traj_ref.poses_se3[1], lie.se3_inverse(traj_ref.poses_se3[0]))
-
-        # print('results 0 pose: ', traj_ref.poses_se3[0])
-        # print('results 1 pose: ', traj_ref.poses_se3[1])
-
-        # to_ref_origin1 = np.dot(traj_origin_edge, lie.se3_inverse(traj_ref_edge))
-        # print('edge transform: ', to_ref_origin1)
-        # self.transform(to_ref_origin1)
-
-        # to_ref_origin2 = np.eye(4)
-        # to_ref_origin2[:3,3] = tr.translation_from_matrix(traj_ref.poses_se3[0]) - tr.translation_from_matrix(self.poses_se3[0])
-        # print('translation:', to_ref_origin2[:3,3])
-        # self.transform(to_ref_origin2)
-
-        # print('after alignment: ')
-        # print('origin 0 pose: ', self.poses_se3[0])
-        # print('results 0 pose: ', traj_ref.poses_se3[0])
-        # print('origin 1 pose: ', self.poses_se3[10])
-        # print('results 1 pose: ', traj_ref.poses_se3[10])       
-
-    
-        # logger.debug(
-        #     "Origin rotation_again alignment transformation:\n{}".format(to_ref_origin_rotation))
-        # self.transform(to_ref_origin_rotation)
+        # print('origin 0 position: ', tr.translation_from_matrix(self.poses_se3[0]))
+        # print('origin 1 position: ', tr.translation_from_matrix(self.poses_se3[1]))
+        # print('results 0 position: ', tr.translation_from_matrix(traj_ref.poses_se3[0]))
+        # print('results 1 position: ', tr.translation_from_matrix(traj_ref.poses_se3[1]))
         return to_ref_origin
 
 

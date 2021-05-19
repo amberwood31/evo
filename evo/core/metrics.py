@@ -33,6 +33,13 @@ from evo.core import filters, trajectory
 from evo.core.result import Result
 from evo.core import lie_algebra as lie
 
+import matplotlib.pyplot as plt
+import evo.tools.plot as plot
+from evo.tools.settings import SETTINGS
+import evo.core.transformations as tr
+
+
+
 if sys.version_info[0] >= 3 and sys.version_info[1] >= 4:
     ABC = abc.ABC
 else:
@@ -55,7 +62,7 @@ class StatisticsType(Enum):
     min = "min"
     max = "max"
     sse = "sse"
-    #segment_mean_std = "segment_mean_std"
+    segment_mean_std = "segment_mean_std"
 
 class PoseRelation(Enum):
     full_transformation = "full transformation"
@@ -63,6 +70,8 @@ class PoseRelation(Enum):
     rotation_part = "rotation part"
     rotation_angle_rad = "rotation angle in radians"
     rotation_angle_deg = "rotation angle in degrees"
+    z = "z"
+    xy = "xy"
 
 
 class Unit(Enum):
@@ -105,7 +114,6 @@ class PE(Metric):
     def __init__(self):
         self.unit = Unit.none
         self.error = np.array([])
-        self.seg_error: typing.List[np.ndarray] = []
 
     def __str__(self) -> str:
         return "PE metric base class"
@@ -114,10 +122,8 @@ class PE(Metric):
     def process_data(self, data):
         return
 
-    def get_statistic(self, statistics_type: StatisticsType) -> float:
-        """
-        return type could be float or tuples
-        """
+    def get_statistic(self, statistics_type: StatisticsType):
+
         if statistics_type == StatisticsType.rmse:
             squared_errors = np.power(self.error, 2)
             return math.sqrt(np.mean(squared_errors))
@@ -134,9 +140,6 @@ class PE(Metric):
             return np.min(self.error)
         elif statistics_type == StatisticsType.std:
             return float(np.std(self.error))
-        elif statistics_type == StatisticsType.segment_mean_std:
-            max_segment_errors = np.array([np.max(x) for x in self.seg_error])
-            return (np.mean(max_segment_errors), np.std(max_segment_errors))
         else:
             raise MetricsException("unsupported statistics_type")
 
@@ -145,7 +148,6 @@ class PE(Metric):
         :return: a dictionary {StatisticsType.value : float}
         """
         statistics = {}
-        print("before get_statistic")
 
         for s in StatisticsType:
             print(s.value)
@@ -155,7 +157,6 @@ class PE(Metric):
             except MetricsException as e:
                 if "unsupported statistics_type" not in str(e):
                     raise
-        print("finished get_statistic")
         return statistics
 
     def get_result(self, ref_name: str = "reference",
@@ -356,6 +357,11 @@ class APE(PE):
         if self.pose_relation == PoseRelation.translation_part:
             # don't require full SE(3) matrices for faster computation
             self.E = traj_est.positions_xyz - traj_ref.positions_xyz
+        elif self.pose_relation == PoseRelation.z:
+            self.E = traj_est.positions_xyz - traj_ref.positions_xyz
+        elif self.pose_relation == PoseRelation.xy:
+            self.E = traj_est.positions_xyz - traj_ref.positions_xyz
+           
         else:
             self.E = [
                 self.ape_base(x_t, x_t_star) for x_t, x_t_star in zip(
@@ -368,6 +374,11 @@ class APE(PE):
         if self.pose_relation == PoseRelation.translation_part:
             # E is an array of position vectors only in this case
             self.error = np.array([np.linalg.norm(E_i) for E_i in self.E])
+        elif self.pose_relation == PoseRelation.z:
+            self.error = np.array([E_i[2] for E_i in self.E])
+        elif self.pose_relation == PoseRelation.xy:
+            self.error = np.array([np.linalg.norm(E_i[0:2]) for E_i in self.E])
+        
         elif self.pose_relation == PoseRelation.rotation_part:
             self.error = np.array([
                 np.linalg.norm(lie.so3_from_se3(E_i) - np.eye(3))
@@ -393,11 +404,13 @@ class SEG_APE(PE):
             
     """
 
-    def __init__(self, pose_relation: PoseRelation = PoseRelation.translation_part, segment_length = 500):
+    def __init__(self, pose_relation: PoseRelation = PoseRelation.translation_part, segment_length = 50):
         self.segment_length = segment_length
         self.pose_relation = pose_relation
         self.error = []
-        self.segment_length: typing.List[np.ndarray] = []
+        self.seg_error: typing.List[np.ndarray] = []
+        self.segment_index = []
+
         self.E: typing.List[List[np.ndarray]] = []
         if pose_relation == PoseRelation.translation_part:
             self.unit = Unit.meters
@@ -415,18 +428,66 @@ class SEG_APE(PE):
         + "segment " + str(self.segment_length) + "m")
         return title
 
+    def get_statistic(self, statistics_type: StatisticsType):
+
+        if statistics_type == StatisticsType.rmse:
+            return -1
+        elif statistics_type == StatisticsType.sse:
+            return -1
+        elif statistics_type == StatisticsType.mean:
+            return -1
+        elif statistics_type == StatisticsType.median:
+            return -1
+        elif statistics_type == StatisticsType.max:
+            return -1
+        elif statistics_type == StatisticsType.min:
+            return -1
+        elif statistics_type == StatisticsType.std:
+            return -1
+        elif statistics_type == StatisticsType.segment_mean_std:
+            max_segment_errors = np.array([np.max(x) for x in self.seg_error])
+            print('max_segment_error:', max_segment_errors)
+            plot_seg = True
+            if plot_seg == True:
+                fig = plt.figure()
+                ax = fig.add_subplot()
+
+                seg_index = np.array(self.segment_index)
+                starting_index = seg_index[:,0]
+
+                ax.plot(starting_index, max_segment_errors)                
+                plt.xlabel('Starting pose index')
+                plt.ylabel('Max error')
+                plt.savefig('segment_max_error')
+                plt.show()
+
+                max_segment_index = max_segment_errors.argmax()
+                start = self.segment_index[max_segment_index][0]
+                end = self.segment_index[max_segment_index][1]
+                print('max segment index: ', start, end)
+
+
+            return (np.mean(max_segment_errors), np.std(max_segment_errors))
+
+           
+
+        else:
+            raise MetricsException("unsupported statistics_type")
+
+
     def last_pose_from_segment_length(self, gt_poses: trajectory.PosePath3D, first_pose):
         dist = gt_poses.distances
-        #todo need check whether this distance is what I expected 
-        print(dist)
+        # print(dist)
 
         for i in range(1,gt_poses.num_poses):  #todo check whether to use shape[0] or [1]
+            # print('segment length: ', self.segment_length)
             if dist[i] > dist[first_pose] + self.segment_length:
                 return i
         
         return -1
 
-    def process_data(self, data: PathPair) -> None:
+    def process_data(self, data: PathPair, align = False, align_origin = False, 
+    align_odom = False) -> None:
         """
         Calculate the APE of segments from a batch of SE(3) poses from trajectories
         :param data: tuple (traj_ref, traj_est) with:
@@ -443,19 +504,90 @@ class SEG_APE(PE):
                 "trajectories must have same number of poses")
 
         step_size = 10
+        i = 0
 
         for first_pose in range(0,traj_ref.num_poses, step_size):
 
-            last_pose = last_pose(traj_ref, first_pose)
+            print('processing segment ', i)
+            i = i+1
+            last_pose = self.last_pose_from_segment_length(traj_ref, first_pose)
 
             if (last_pose == -1):
                 break
 
-            traj_ref_segment = trajectory.PosePath3D(poses_se3=traj_ref.poses_se3[first_pose, last_pose])
-            traj_est_segment = trajectory.PosePath3D(poses_se3=traj_est.poses_se3[first_pose, last_pose])
-            alignment_transformation = traj_est_segment.align_origin(traj_ref_segment)
+            traj_ref_segment = trajectory.PosePath3D(poses_se3=traj_ref.poses_se3[first_pose:last_pose])
+            traj_est_segment = trajectory.PosePath3D(poses_se3=traj_est.poses_se3[first_pose:last_pose])
+            # if align or correct_scale:            
+            if align:
+                alignment_transformation = lie.sim3(
+            *traj_est_segment.align(traj_ref_segment, False, False, -1))
+            elif align_origin:
+                print('align origin: ', align_origin)
+                alignment_transformation = traj_est_segment.align_origin(traj_ref_segment)
+            elif align_odom:
+                alignment_transformation = traj_est_segment.align_odom(traj_ref_segment)
+            
+            self.segment_index.append([first_pose, last_pose])
+            if i==1:
+
+                print('starting idx: ', first_pose)
+                print('ending idx: ', last_pose)
+                # print('origin 0 position: ', traj_est_segment.poses_se3[0])
+                # print('origin 1 position: ', traj_est_segment.poses_se3[1])
+                # print('ref 0 position: ', traj_ref_segment.poses_se3[0])
+                # print('results 1 position: ', traj_ref_segment.poses_se3[1])
+
+
+                fig = plt.figure()
+                
+
+                plot_option = '3D'
+                if plot_option == '2D':
+                    ax = fig.add_subplot()#projection="3d"
+                elif plot_option == '3D':
+                    ax = fig.add_subplot(projection="3d")
+
+
+                x_ref = traj_ref_segment.positions_xyz[:, 0]
+                y_ref = traj_ref_segment.positions_xyz[:, 1]
+                z_ref = traj_ref_segment.positions_xyz[:, 2]
+                front_vector_origin = np.array([1,0,0,1])
+                f_vecs = np.array([(np.dot(pose, front_vector_origin)-pose[:,3])*10 for pose in traj_ref_segment.poses_se3])
+                if plot_option == '2D':
+                    ax.plot(x_ref, y_ref)#, z_ref)
+
+                    # plt.quiver(x_ref, y_ref, f_vecs[:,0], f_vecs[:,1], color='g')#, arrow_length_ratio=0.05)
+                elif plot_option == '3D':
+                    ax.plot(x_ref, y_ref, z_ref)
+
+                    # plt.quiver(x_ref, y_ref, z_ref, f_vecs[:,0], f_vecs[:,1], f_vecs[:,2], color='g', arrow_length_ratio=0.05)
+
+
+
+                x_est = traj_est_segment.positions_xyz[:, 0]
+                y_est = traj_est_segment.positions_xyz[:, 1]
+                z_est = traj_est_segment.positions_xyz[:, 2]
+                f_vecs = np.array([(np.dot(pose, front_vector_origin)-pose[:,3])*10 for pose in traj_est_segment.poses_se3])
+                if plot_option =='2D':
+                    ax.plot(x_est, y_est, color = 'r')
+
+                    # plt.quiver(x_est, y_est, f_vecs[:,0], f_vecs[:,1], color='b')
+                elif plot_option == '3D':
+
+                    ax.plot(x_est, y_est, z_est, color = 'r')
+                    # plt.quiver(x_est, y_est, z_est, f_vecs[:,0], f_vecs[:,1], f_vecs[:,2], color='b', arrow_length_ratio=0.05)
+
+
+                plt.title('segment_length: '+str(self.segment_length) + 'm')
+                plt.savefig('first_segment_aligned.png')
+                plt.show()
+                
 
             if self.pose_relation == PoseRelation.translation_part:
+                segment_E = traj_est_segment.positions_xyz - traj_ref_segment.positions_xyz
+            elif self.pose_relation == PoseRelation.z:
+                segment_E = traj_est_segment.positions_xyz - traj_ref_segment.positions_xyz
+            elif self.pose_relation == PoseRelation.xy:
                 segment_E = traj_est_segment.positions_xyz - traj_ref_segment.positions_xyz
             else:
                 segment_E = [
@@ -469,6 +601,11 @@ class SEG_APE(PE):
 
             if self.pose_relation == PoseRelation.translation_part:
                 segment_error = np.array([np.linalg.norm(E_i) for E_i in segment_E])
+            
+            elif self.pose_relation == PoseRelation.z:
+                segment_error = np.array([E_i[2] for E_i in segment_E])
+            elif self.pose_relation == PoseRelation.xy:
+                segment_error = np.array([np.linalg.norm(E_i[0:2]) for E_i in segment_E])
             elif self.pose_relation == PoseRelation.rotation_part:
                 segment_error = np.array([
                     np.linalg.norm(lie.so3_from_se3(E_i) - np.eye(3))
@@ -487,6 +624,7 @@ class SEG_APE(PE):
                 ])
             else:
                 raise MetricsException("unsupported pose_relation")
+
 
             self.E.append(segment_E)
             self.seg_error.append(segment_error)       

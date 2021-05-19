@@ -25,9 +25,9 @@ import argparse
 import logging
 
 import numpy as np
-
+import math
 import evo.common_ape_rpe as common
-from evo.core import lie_algebra, sync, metrics
+from evo.core import lie_algebra, sync, metrics, transformations
 from evo.core.result import Result
 from evo.core.trajectory import PosePath3D, PoseTrajectory3D
 from evo.tools import file_interface, log
@@ -50,7 +50,7 @@ def parser() -> argparse.ArgumentParser:
     algo_opts.add_argument(
         "-r", "--pose_relation", default="trans_part",
         help="pose relation on which the APE is based",
-        choices=["full", "trans_part", "rot_part", "angle_deg", "angle_rad"])
+        choices=["full", "trans_part", "z", "xy", "rot_part", "angle_deg", "angle_rad"])
     algo_opts.add_argument("-a", "--align",
                            help="alignment with Umeyama's method (no scale)",
                            action="store_true")
@@ -67,6 +67,11 @@ def parser() -> argparse.ArgumentParser:
     algo_opts.add_argument(
         "--align_odom",
         help="align the trajectory origin position and the first odom translation orientation", action="store_true")
+    algo_opts.add_argument(
+        "--flip_xy",
+        help="rotate the pose estimates by 90 degree around z axis, to handle different reference frame of different sensors",
+        action="store_true"
+    )
 
     output_opts.add_argument(
         "-p",
@@ -249,6 +254,13 @@ def run(args: argparse.Namespace) -> None:
     if args.plot_full_ref:
         import copy
         traj_ref_full = copy.deepcopy(traj_ref)
+
+    if args.flip_xy:
+        print("flip xy", args.flip_xy)
+        flip_rotation = transformations.rotation_matrix(math.pi/2, [0,0,1])
+        print('transformation matrix,', flip_rotation)
+        traj_est.transform_rotation_only(flip_rotation)
+
 
     if isinstance(traj_ref, PoseTrajectory3D) and isinstance(
             traj_est, PoseTrajectory3D):
