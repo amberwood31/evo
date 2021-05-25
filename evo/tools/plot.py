@@ -321,7 +321,14 @@ def traj(ax: plt.Axes, plot_mode: PlotMode, traj: trajectory.PosePath3D,
     if plot_mode == PlotMode.xyz:
         z = traj.positions_xyz[:, z_idx]
         ax.plot(x, y, z, style, color=color, label=label, alpha=alpha)
-        ax.plot(x[700], y[700], z[700], '*', color='r', markersize=12)
+        start = 0
+        end = 0
+        ax.plot(x[start], y[start], z[start], '*', color='r', markersize=12)
+        ax.plot(x[end], y[end], z[end], '*', color='k', markersize=12)
+       
+        for i in range(start+10, end, 20):
+            ax.plot(x[i], y[i], z[i], '*', color='g', markersize=12)
+        # ax.plot(x[200], y[200], z[200], '*', color='r', markersize=12)
         # ax.plot(x[100], y[100], z[100], '*', color='y', markersize=12)
         # ax.plot(x[130], y[130], z[130], '*', color='y', markersize=12)
         # ax.plot(x[160], y[160], z[160], '*', color='y', markersize=12)
@@ -345,7 +352,7 @@ def traj(ax: plt.Axes, plot_mode: PlotMode, traj: trajectory.PosePath3D,
 
         # ax.plot(x[600], y[600], z[600], '*', color='b', markersize=12)
 
-        ax.plot(x[900], y[900], z[900], '*', color='k', markersize=12)
+        # ax.plot(x[400], y[400], z[400], '*', color='k', markersize=12)
 
 
         print('marking', len(x), 'points')

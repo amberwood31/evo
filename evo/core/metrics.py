@@ -315,6 +315,8 @@ class APE(PE):
         self.error = np.array([])
         if pose_relation == PoseRelation.translation_part:
             self.unit = Unit.meters
+        elif pose_relation == PoseRelation.z:
+            self.unit = Unit.meters
         elif pose_relation == PoseRelation.rotation_angle_deg:
             self.unit = Unit.degrees
         elif pose_relation == PoseRelation.rotation_angle_rad:
@@ -404,15 +406,20 @@ class SEG_APE(PE):
             
     """
 
-    def __init__(self, pose_relation: PoseRelation = PoseRelation.translation_part, segment_length = 50):
+    def __init__(self, pose_relation: PoseRelation = PoseRelation.translation_part, segment_length = 50, plot = False):
         self.segment_length = segment_length
         self.pose_relation = pose_relation
         self.error = []
         self.seg_error: typing.List[np.ndarray] = []
         self.segment_index = []
 
+        self.plot_show = plot
+
+
         self.E: typing.List[List[np.ndarray]] = []
         if pose_relation == PoseRelation.translation_part:
+            self.unit = Unit.meters
+        elif pose_relation == PoseRelation.z:
             self.unit = Unit.meters
         elif pose_relation == PoseRelation.rotation_angle_deg:
             self.unit = Unit.degrees
@@ -459,7 +466,8 @@ class SEG_APE(PE):
                 plt.xlabel('Starting pose index')
                 plt.ylabel('Max error')
                 plt.savefig('segment_max_error')
-                plt.show()
+                if self.plot_show:
+                    plt.show()
 
                 max_segment_index = max_segment_errors.argmax()
                 start = self.segment_index[max_segment_index][0]
@@ -560,7 +568,7 @@ class SEG_APE(PE):
                 elif plot_option == '3D':
                     ax.plot(x_ref, y_ref, z_ref)
 
-                    # plt.quiver(x_ref, y_ref, z_ref, f_vecs[:,0], f_vecs[:,1], f_vecs[:,2], color='g', arrow_length_ratio=0.05)
+                    plt.quiver(x_ref, y_ref, z_ref, f_vecs[:,0], f_vecs[:,1], f_vecs[:,2], color='g', arrow_length_ratio=0.05)
 
 
 
@@ -575,12 +583,13 @@ class SEG_APE(PE):
                 elif plot_option == '3D':
 
                     ax.plot(x_est, y_est, z_est, color = 'r')
-                    # plt.quiver(x_est, y_est, z_est, f_vecs[:,0], f_vecs[:,1], f_vecs[:,2], color='b', arrow_length_ratio=0.05)
+                    plt.quiver(x_est, y_est, z_est, f_vecs[:,0], f_vecs[:,1], f_vecs[:,2], color='b', arrow_length_ratio=0.05)
 
 
                 plt.title('segment_length: '+str(self.segment_length) + 'm')
                 plt.savefig('first_segment_aligned.png')
-                plt.show()
+                if self.plot_show:
+                    plt.show()
                 
 
             if self.pose_relation == PoseRelation.translation_part:

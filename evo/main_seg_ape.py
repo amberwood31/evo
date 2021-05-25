@@ -166,7 +166,8 @@ def segment_ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         align_origin: bool = False, align_odom: bool = False,
         segment_length = 50,
         ref_name: str = "reference",
-        est_name: str = "estimate") -> Result:
+        est_name: str = "estimate",
+        plot = False) -> Result:
 
     # Align the trajectories.
     only_scale = correct_scale and not align
@@ -181,7 +182,7 @@ def segment_ape(traj_ref: PosePath3D, traj_est: PosePath3D,
 
     logger.debug(SEP)
     data = (traj_ref, traj_est)
-    seg_ape_metric = metrics.SEG_APE(pose_relation, segment_length)
+    seg_ape_metric = metrics.SEG_APE(pose_relation, segment_length, plot)
     seg_ape_metric.process_data(data, align, align_origin, align_odom)
 
     title = str(seg_ape_metric)
@@ -270,20 +271,21 @@ def run(args: argparse.Namespace) -> None:
         segment_length=args.seg,
         ref_name=ref_name,
         est_name=est_name,
+        plot=args.plot
     )
 
-    if args.plot or args.save_plot or args.serialize_plot:
-        common.plot_result(args, result, traj_ref,
-                           result.trajectories[est_name],
-                           traj_ref_full=traj_ref_full)
+    # if args.plot or args.save_plot or args.serialize_plot:
+    #     common.plot_result(args, result, traj_ref,
+    #                        result.trajectories[est_name],
+    #                        traj_ref_full=traj_ref_full)
 
-    if args.save_results:
-        logger.debug(SEP)
-        if not SETTINGS.save_traj_in_zip:
-            del result.trajectories[ref_name]
-            del result.trajectories[est_name]
-        file_interface.save_res_file(args.save_results, result,
-                                     confirm_overwrite=not args.no_warnings)
+    # if args.save_results:
+    #     logger.debug(SEP)
+    #     if not SETTINGS.save_traj_in_zip:
+    #         del result.trajectories[ref_name]
+    #         del result.trajectories[est_name]
+    #     file_interface.save_res_file(args.save_results, result,
+    #                                  confirm_overwrite=not args.no_warnings)
 
 
 if __name__ == '__main__':

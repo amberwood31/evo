@@ -198,6 +198,9 @@ def ape(traj_ref: PosePath3D, traj_est: PosePath3D,
         logger.debug(SEP)
         alignment_transformation = traj_est.align_odom(traj_ref)
 
+    if alignment_transformation is not None:
+        print('alignment_rotation: ', transformations.euler_from_matrix(alignment_transformation))
+        print('alignment_translation: ', alignment_transformation[:3,3])
     # Calculate APE.
     logger.debug(SEP)
     data = (traj_ref, traj_est)

@@ -285,10 +285,7 @@ class PosePath3D(object):
         print('results 1 position: ', traj_ref.positions_xyz[1])
         print('origin 1 positions should be different with the previous prints while origin 0 similar')
 
-
-
-
-        return to_ref_origin
+        return np.dot(to_ref_origin, rotation_mat)
 
 
 

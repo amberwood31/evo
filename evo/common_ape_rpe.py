@@ -122,13 +122,13 @@ def plot_result(args: argparse.Namespace, result: Result, traj_ref: PosePath3D,
     else:
         seconds_from_start = None
 
-    # plot.error_array(
-    #     fig1.gca(), result.np_arrays["error_array"],
-    #     x_array=seconds_from_start, statistics={
-    #         s: result.stats[s]
-    #         for s in SETTINGS.plot_statistics if s not in ("min", "max")
-    #     }, name=result.info["label"], title=result.info["title"],
-    #     xlabel="$t$ (s)" if seconds_from_start is not None else "index")
+    plot.error_array(
+        fig1.gca(), result.np_arrays["error_array"],
+        x_array=seconds_from_start, statistics={
+            s: result.stats[s]
+            for s in SETTINGS.plot_statistics if s not in ("min", "max")
+        }, name=result.info["label"], title=result.info["title"],
+        xlabel="$t$ (s)" if seconds_from_start is not None else "index")
 
     logger.debug("Plotting results... ")
 
